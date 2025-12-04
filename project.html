@@ -1,0 +1,2096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>❄️ Karnataka Permafrost Crisis | Interactive Climate Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <style>
+        :root {
+            --primary-dark: #0A1128;
+            --secondary-navy: #1C2B4A;
+            --accent-teal: #00E0FF;
+            --accent-blue: #0066FF;
+            --danger-red: #FF375F;
+            --warning-orange: #FF8C42;
+            --success-green: #00FF9D;
+            --ice-blue: #8AE2FF;
+            --glacier-blue: #7BC8F6;
+            --text-light: #E3F2FF;
+            --text-gray: #94A3B8;
+            --card-bg: rgba(28, 43, 74, 0.7);
+            --card-hover: rgba(28, 43, 74, 0.9);
+            --shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+            --glow: 0 0 30px rgba(0, 224, 255, 0.5);
+            --transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        
+        body {
+            background: linear-gradient(135deg, #0A1128 0%, #0F1C3F 50%, #081024 100%);
+            color: var(--text-light);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+            line-height: 1.6;
+        }
+        
+        /* Advanced Animated Background */
+        .background-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+            overflow: hidden;
+        }
+        
+        .aurora-borealis {
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, 
+                rgba(0, 224, 255, 0.1) 0%, 
+                rgba(0, 102, 255, 0.15) 25%, 
+                rgba(123, 200, 246, 0.1) 50%, 
+                rgba(138, 226, 255, 0.15) 75%);
+            filter: blur(60px);
+            animation: auroraMove 20s infinite alternate ease-in-out;
+            opacity: 0.7;
+        }
+        
+        @keyframes auroraMove {
+            0% { transform: translate(-20%, -20%) rotate(0deg); }
+            100% { transform: translate(20%, 20%) rotate(180deg); }
+        }
+        
+        .floating-glaciers {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: linear-gradient(135deg, rgba(138, 226, 255, 0.2), rgba(123, 200, 246, 0.1));
+            border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+            filter: blur(40px);
+            animation: float 25s infinite linear;
+        }
+        
+        @keyframes float {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(100px, 50px) rotate(90deg); }
+            50% { transform: translate(50px, 100px) rotate(180deg); }
+            75% { transform: translate(-50px, 50px) rotate(270deg); }
+            100% { transform: translate(0, 0) rotate(360deg); }
+        }
+        
+        .snow-particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            filter: blur(1px);
+            animation: snowfall linear infinite;
+        }
+        
+        @keyframes snowfall {
+            0% { transform: translateY(-100px) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+        }
+        
+        .crystal-shard {
+            position: absolute;
+            width: 20px;
+            height: 100px;
+            background: linear-gradient(to bottom, transparent, rgba(0, 224, 255, 0.4), transparent);
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            animation: crystalSparkle 4s infinite;
+        }
+        
+        @keyframes crystalSparkle {
+            0%, 100% { opacity: 0.3; transform: scale(1) rotate(0deg); }
+            50% { opacity: 1; transform: scale(1.2) rotate(180deg); }
+        }
+        
+        /* Navigation */
+        .navbar {
+            background: rgba(10, 17, 40, 0.9);
+            backdrop-filter: blur(20px);
+            padding: 1.5rem 3rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border-bottom: 2px solid rgba(0, 224, 255, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: slideDown 0.8s ease-out;
+        }
+        
+        @keyframes slideDown {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 1.8rem;
+            font-weight: 900;
+            background: linear-gradient(90deg, var(--accent-teal), var(--accent-blue));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 40px rgba(0, 224, 255, 0.5);
+            animation: logoGlow 3s infinite alternate;
+        }
+        
+        @keyframes logoGlow {
+            0% { text-shadow: 0 0 30px rgba(0, 224, 255, 0.5); }
+            100% { text-shadow: 0 0 60px rgba(0, 224, 255, 0.8), 0 0 90px rgba(0, 102, 255, 0.4); }
+        }
+        
+        .logo-icon {
+            font-size: 2rem;
+            animation: spinSlow 20s linear infinite;
+        }
+        
+        @keyframes spinSlow {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+            list-style: none;
+        }
+        
+        .nav-link {
+            color: var(--text-light);
+            text-decoration: none;
+            font-weight: 600;
+            padding: 0.8rem 1.5rem;
+            border-radius: 50px;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+            border: 2px solid transparent;
+            background: rgba(0, 224, 255, 0.05);
+            font-size: 0.95rem;
+            white-space: nowrap;
+        }
+        
+        .nav-link::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 224, 255, 0.2), transparent);
+            transition: left 0.7s;
+        }
+        
+        .nav-link:hover::before {
+            left: 100%;
+        }
+        
+        .nav-link:hover, .nav-link.active {
+            background: rgba(0, 224, 255, 0.15);
+            border-color: var(--accent-teal);
+            box-shadow: 0 0 25px rgba(0, 224, 255, 0.3);
+            transform: translateY(-5px) scale(1.05);
+        }
+        
+        .nav-link i {
+            margin-right: 8px;
+            font-size: 1rem;
+        }
+        
+        /* Main Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        /* Page Transitions */
+        .page {
+            display: none;
+            animation: pageSlide 0.6s ease-out;
+        }
+        
+        @keyframes pageSlide {
+            from { opacity: 0; transform: translateY(50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .page.active {
+            display: block;
+        }
+        
+        /* Dashboard Header */
+        .dashboard-header {
+            text-align: center;
+            margin-bottom: 3rem;
+            position: relative;
+            padding: 2.5rem;
+            background: linear-gradient(135deg, rgba(0, 224, 255, 0.05), rgba(0, 102, 255, 0.05));
+            border-radius: 25px;
+            border: 1px solid rgba(0, 224, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        .dashboard-header h1 {
+            font-size: 3rem;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(to right, var(--accent-teal), var(--ice-blue));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 40px rgba(0, 224, 255, 0.3);
+            animation: titleGlow 4s infinite alternate;
+            line-height: 1.2;
+        }
+        
+        @keyframes titleGlow {
+            0% { text-shadow: 0 0 30px rgba(0, 224, 255, 0.3); }
+            100% { text-shadow: 0 0 50px rgba(0, 224, 255, 0.6), 0 0 80px rgba(0, 102, 255, 0.3); }
+        }
+        
+        .tagline {
+            font-size: 1.2rem;
+            color: var(--text-gray);
+            max-width: 800px;
+            margin: 0 auto 2rem;
+            line-height: 1.7;
+        }
+        
+        .data-source {
+            background: rgba(0, 224, 255, 0.1);
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            display: inline-flex;
+            align-items: center;
+            gap: 15px;
+            border: 1px solid rgba(0, 224, 255, 0.3);
+            backdrop-filter: blur(10px);
+            animation: pulse 2s infinite;
+            font-size: 0.95rem;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(0, 224, 255, 0.2); }
+            50% { box-shadow: 0 0 40px rgba(0, 224, 255, 0.4); }
+        }
+        
+        /* Dashboard Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        
+        .card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(15px);
+            position: relative;
+            overflow: hidden;
+            height: 100%;
+        }
+        
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, var(--accent-teal), var(--accent-blue));
+        }
+        
+        .card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: var(--shadow), var(--glow);
+            border-color: rgba(0, 224, 255, 0.4);
+        }
+        
+        .card-title {
+            font-size: 1.4rem;
+            margin-bottom: 1.5rem;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            line-height: 1.4;
+        }
+        
+        .card-title i {
+            color: var(--accent-teal);
+            font-size: 1.6rem;
+            animation: iconFloat 3s infinite ease-in-out;
+        }
+        
+        @keyframes iconFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1.2rem;
+            margin-top: 1.5rem;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 1.2rem;
+            background: linear-gradient(135deg, rgba(0, 224, 255, 0.05), rgba(0, 102, 255, 0.05));
+            border-radius: 15px;
+            transition: var(--transition);
+            border: 1px solid transparent;
+            animation: statAppear 0.6s ease-out;
+        }
+        
+        @keyframes statAppear {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        .stat-item:hover {
+            background: linear-gradient(135deg, rgba(0, 224, 255, 0.15), rgba(0, 102, 255, 0.15));
+            border-color: var(--accent-teal);
+            transform: translateY(-5px);
+        }
+        
+        .stat-item.danger {
+            animation: dangerPulse 2s infinite;
+        }
+        
+        @keyframes dangerPulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(255, 55, 95, 0.3); }
+            50% { box-shadow: 0 0 40px rgba(255, 55, 95, 0.6); }
+        }
+        
+        .stat-item.warning {
+            animation: warningPulse 3s infinite;
+        }
+        
+        @keyframes warningPulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(255, 140, 66, 0.3); }
+            50% { box-shadow: 0 0 30px rgba(255, 140, 66, 0.6); }
+        }
+        
+        .stat-item.safe {
+            animation: safePulse 4s infinite;
+        }
+        
+        @keyframes safePulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(0, 255, 157, 0.3); }
+            50% { box-shadow: 0 0 30px rgba(0, 255, 157, 0.6); }
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 900;
+            margin: 0.8rem 0;
+            background: linear-gradient(45deg, var(--text-light), var(--accent-blue));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            line-height: 1;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-gray);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            line-height: 1.4;
+        }
+        
+        /* Karnataka Map */
+        .map-container {
+            height: 500px;
+            border-radius: 20px;
+            overflow: hidden;
+            margin: 3rem 0;
+            box-shadow: var(--shadow);
+            border: 3px solid rgba(0, 224, 255, 0.3);
+            position: relative;
+            animation: mapReveal 1s ease-out;
+        }
+        
+        @keyframes mapReveal {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        #karnatakaMap {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .map-legend {
+            background: rgba(10, 17, 40, 0.95);
+            padding: 1.2rem;
+            border-radius: 15px;
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            border: 2px solid rgba(0, 224, 255, 0.3);
+            backdrop-filter: blur(10px);
+            box-shadow: var(--shadow);
+            max-width: 250px;
+        }
+        
+        .map-legend h4 {
+            color: var(--accent-teal);
+            margin-bottom: 12px;
+            font-size: 1rem;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            font-size: 0.85rem;
+        }
+        
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 12px;
+            border: 2px solid white;
+            flex-shrink: 0;
+        }
+        
+        /* Charts Container */
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+        
+        .chart-card {
+            padding: 2rem;
+            height: auto;
+            min-height: 400px;
+        }
+        
+        .chart-wrapper {
+            height: 300px;
+            margin-top: 1.5rem;
+            position: relative;
+        }
+        
+        /* Content Lists */
+        .content-list {
+            margin: 1.5rem 0;
+            padding-left: 1.5rem;
+        }
+        
+        .content-list li {
+            margin-bottom: 0.8rem;
+            line-height: 1.6;
+        }
+        
+        /* Scenario Simulator */
+        .scenario-section {
+            background: linear-gradient(135deg, rgba(10, 17, 40, 0.8), rgba(28, 43, 74, 0.9));
+            padding: 2.5rem;
+            border-radius: 25px;
+            margin: 3rem 0;
+            box-shadow: var(--shadow);
+            border: 2px solid rgba(0, 224, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+            animation: scenarioReveal 0.8s ease-out;
+        }
+        
+        @keyframes scenarioReveal {
+            from { opacity: 0; transform: translateY(50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .scenario-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, var(--danger-red), var(--warning-orange), var(--accent-blue), var(--success-green));
+        }
+        
+        .scenario-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .slider-container {
+            margin: 1.5rem 0;
+        }
+        
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            font-weight: 700;
+            color: var(--text-light);
+            font-size: 1.1rem;
+            align-items: center;
+        }
+        
+        .slider-value {
+            color: var(--accent-teal);
+            font-weight: 900;
+            font-size: 1.3rem;
+            animation: valuePulse 2s infinite;
+        }
+        
+        @keyframes valuePulse {
+            0%, 100% { text-shadow: 0 0 10px rgba(0, 224, 255, 0.5); }
+            50% { text-shadow: 0 0 20px rgba(0, 224, 255, 0.8); }
+        }
+        
+        .slider {
+            width: 100%;
+            height: 12px;
+            border-radius: 8px;
+            background: linear-gradient(90deg, var(--success-green), var(--warning-orange), var(--danger-red));
+            outline: none;
+            -webkit-appearance: none;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: var(--accent-teal);
+            cursor: pointer;
+            box-shadow: 0 0 30px rgba(0, 224, 255, 0.8);
+            border: 3px solid var(--primary-dark);
+            transition: var(--transition);
+        }
+        
+        .slider::-webkit-slider-thumb:hover {
+            transform: scale(1.3);
+            box-shadow: 0 0 50px rgba(0, 224, 255, 1);
+        }
+        
+        .slider-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            color: var(--text-gray);
+            font-size: 0.9rem;
+        }
+        
+        .scenario-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1.2rem;
+            margin-top: 2rem;
+        }
+        
+        .scenario-btn {
+            padding: 1.2rem;
+            border: none;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-light);
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            border: 2px solid transparent;
+            font-size: 1rem;
+            position: relative;
+            overflow: hidden;
+            text-align: center;
+            line-height: 1.4;
+        }
+        
+        .scenario-btn:hover {
+            transform: translateY(-8px) scale(1.05);
+            border-color: var(--accent-teal);
+            box-shadow: 0 15px 35px rgba(0, 224, 255, 0.4);
+        }
+        
+        .scenario-btn.active {
+            transform: translateY(-5px) scale(1.02);
+            animation: activeScenario 2s infinite;
+        }
+        
+        @keyframes activeScenario {
+            0%, 100% { box-shadow: 0 10px 25px rgba(0, 224, 255, 0.3); }
+            50% { box-shadow: 0 15px 35px rgba(0, 224, 255, 0.6); }
+        }
+        
+        /* Data Grids */
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            margin-top: 4rem;
+            padding-top: 2.5rem;
+            border-top: 2px solid rgba(0, 224, 255, 0.2);
+            color: var(--text-gray);
+            font-size: 0.95rem;
+            position: relative;
+            line-height: 1.6;
+        }
+        
+        .footer::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 2px;
+            background: var(--accent-teal);
+        }
+        
+        /* Notification */
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: linear-gradient(135deg, rgba(10, 17, 40, 0.95), rgba(28, 43, 74, 0.95));
+            padding: 1.2rem 1.8rem;
+            border-radius: 15px;
+            border-left: 5px solid var(--accent-teal);
+            box-shadow: var(--shadow);
+            z-index: 1000;
+            display: none;
+            animation: notificationSlide 0.5s ease-out;
+            backdrop-filter: blur(15px);
+            border: 2px solid rgba(0, 224, 255, 0.3);
+            max-width: 350px;
+        }
+        
+        @keyframes notificationSlide {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .container {
+                padding: 1.5rem;
+            }
+            
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav-links {
+                gap: 0.5rem;
+            }
+            
+            .nav-link {
+                padding: 0.7rem 1.2rem;
+                font-size: 0.9rem;
+            }
+        }
+        
+        @media (max-width: 992px) {
+            .navbar {
+                padding: 1.2rem;
+                flex-direction: column;
+                gap: 1.2rem;
+            }
+            
+            .logo {
+                font-size: 1.6rem;
+            }
+            
+            .nav-links {
+                flex-wrap: wrap;
+                justify-content: center;
+                width: 100%;
+            }
+            
+            .dashboard-header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .tagline {
+                font-size: 1.1rem;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 1.5rem;
+            }
+            
+            .map-container {
+                height: 400px;
+            }
+            
+            .scenario-controls {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .dashboard-header {
+                padding: 1.8rem;
+            }
+            
+            .dashboard-header h1 {
+                font-size: 2rem;
+            }
+            
+            .tagline {
+                font-size: 1rem;
+            }
+            
+            .data-source {
+                padding: 0.8rem 1.5rem;
+                font-size: 0.85rem;
+            }
+            
+            .card {
+                padding: 1.5rem;
+            }
+            
+            .card-title {
+                font-size: 1.2rem;
+            }
+            
+            .stat-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .stat-value {
+                font-size: 1.8rem;
+            }
+            
+            .charts-container {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            
+            .chart-card {
+                padding: 1.5rem;
+                min-height: 350px;
+            }
+            
+            .chart-wrapper {
+                height: 250px;
+            }
+            
+            .scenario-section {
+                padding: 1.8rem;
+            }
+            
+            .scenario-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .map-legend {
+                position: relative;
+                bottom: auto;
+                right: auto;
+                margin: 1rem auto;
+                max-width: 100%;
+            }
+            
+            .notification {
+                max-width: calc(100% - 40px);
+                font-size: 0.9rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .logo {
+                font-size: 1.4rem;
+            }
+            
+            .nav-link {
+                padding: 0.6rem 1rem;
+                font-size: 0.8rem;
+            }
+            
+            .dashboard-header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .card-title {
+                font-size: 1.1rem;
+            }
+            
+            .stat-item {
+                padding: 1rem;
+            }
+            
+            .stat-value {
+                font-size: 1.6rem;
+            }
+            
+            .map-container {
+                height: 350px;
+            }
+            
+            .footer {
+                font-size: 0.85rem;
+            }
+        }
+        
+        /* Text Content Improvements */
+        .text-content {
+            line-height: 1.7;
+            margin-bottom: 1.5rem;
+        }
+        
+        .text-content p {
+            margin-bottom: 1rem;
+        }
+        
+        .highlight {
+            color: var(--accent-teal);
+            font-weight: 600;
+        }
+        
+        .impact-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--accent-teal);
+        }
+        
+        .impact-item h4 {
+            color: var(--accent-teal);
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="background-container" id="bgContainer"></div>
+    
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="logo">
+            <i class="fas fa-mountain logo-icon"></i>
+            <span>Karnataka Glacier Watch</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="#" class="nav-link active" data-page="overview"><i class="fas fa-globe-asia"></i> Overview</a></li>
+            <li><a href="#" class="nav-link" data-page="regions"><i class="fas fa-map-marked-alt"></i> Regions</a></li>
+            <li><a href="#" class="nav-link" data-page="simulator"><i class="fas fa-sliders-h"></i> Simulator</a></li>
+            <li><a href="#" class="nav-link" data-page="impacts"><i class="fas fa-exclamation-triangle"></i> Impacts</a></li>
+            <li><a href="#" class="nav-link" data-page="research"><i class="fas fa-microscope"></i> Research</a></li>
+        </ul>
+    </nav>
+    
+    <!-- Update Notification -->
+    <div class="notification" id="notification">
+        <div class="notification-content">
+            <i class="fas fa-sync-alt" style="color:var(--accent-teal); margin-right:12px; font-size:1.1rem;"></i>
+            <strong>Live Data Updated!</strong> Scenario impacts recalculated.
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- Karnataka Overview Page -->
+        <div id="overview" class="page active">
+            <div class="dashboard-header">
+                <h1><i class="fas fa-mountain"></i> Karnataka Western Ghats Cryosphere</h1>
+                <p class="tagline">Real-time monitoring of glacial retreat and permafrost degradation in Karnataka's Western Ghats. Tracking climate impacts on South India's water towers.</p>
+                <div class="data-source">
+                    <i class="fas fa-satellite-dish"></i>
+                    Live Data: ISRO • IMD • Karnataka Forest Dept • IISc Bangalore
+                </div>
+            </div>
+            
+            <div class="dashboard-grid">
+                <div class="card">
+                    <h3 class="card-title"><i class="fas fa-thermometer-three-quarters"></i> Critical Temperature Trends</h3>
+                    <div class="stat-grid">
+                        <div class="stat-item danger">
+                            <div class="stat-value">+2.3°C</div>
+                            <div class="stat-label">Western Ghats Warming</div>
+                        </div>
+                        <div class="stat-item warning">
+                            <div class="stat-value">1.8x Faster</div>
+                            <div class="stat-label">Than National Average</div>
+                        </div>
+                        <div class="stat-item danger">
+                            <div class="stat-value">CRITICAL</div>
+                            <div class="stat-label">Tipping Point Alert</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3 class="card-title"><i class="fas fa-snowflake"></i> Glacier Status Report</h3>
+                    <div class="stat-grid">
+                        <div class="stat-item warning">
+                            <div class="stat-value">-42%</div>
+                            <div class="stat-label">Glacial Ice Since 1970</div>
+                        </div>
+                        <div class="stat-item danger">
+                            <div class="stat-value">85 km²</div>
+                            <div class="stat-label">Permafrost Area Remaining</div>
+                        </div>
+                        <div class="stat-item warning">
+                            <div class="stat-value">12 MT/yr</div>
+                            <div class="stat-label">Ice Mass Loss Rate</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3 class="card-title"><i class="fas fa-water"></i> Hydrological Impact</h3>
+                    <div class="stat-grid">
+                        <div class="stat-item danger">
+                            <div class="stat-value">8 Major</div>
+                            <div class="stat-label">Rivers Affected</div>
+                        </div>
+                        <div class="stat-item warning">
+                            <div class="stat-value">45 Million</div>
+                            <div class="stat-label">People Dependent</div>
+                        </div>
+                        <div class="stat-item danger">
+                            <div class="stat-value">-30%</div>
+                            <div class="stat-label">River Flow by 2050</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="map-container">
+                <div id="karnatakaMap"></div>
+                <div class="map-legend">
+                    <h4><i class="fas fa-map-pin"></i> Karnataka Risk Zones</h4>
+                    <div class="legend-item"><div class="legend-color" style="background:var(--danger-red);"></div> Extreme Risk (Kodagu)</div>
+                    <div class="legend-item"><div class="legend-color" style="background:var(--warning-orange);"></div> High Risk (Chikkamagaluru)</div>
+                    <div class="legend-item"><div class="legend-color" style="background:var(--accent-blue);"></div> Moderate Risk</div>
+                    <div class="legend-item"><div class="legend-color" style="background:var(--success-green);"></div> Stable Areas</div>
+                </div>
+            </div>
+            
+            <div class="charts-container">
+                <div class="card chart-card">
+                    <h3 class="card-title"><i class="fas fa-chart-line-down"></i> Western Ghats Glacier Decline</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="glacierLossChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="card chart-card">
+                    <h3 class="card-title"><i class="fas fa-chart-bar"></i> District-wise Impact Analysis</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="districtImpactChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Regional Analysis Page -->
+        <div id="regions" class="page">
+            <div class="dashboard-header">
+                <h1><i class="fas fa-map-marked-alt"></i> District-wise Crisis Analysis</h1>
+                <p class="tagline">Detailed analysis of glacial retreat impacts across Karnataka's vulnerable districts.</p>
+                <div class="data-source">
+                    <i class="fas fa-database"></i>
+                    Source: Karnataka Disaster Management Authority • IISc • IMD
+                </div>
+            </div>
+            
+            <div class="dashboard-grid">
+                <div class="card">
+                    <h3 class="card-title"><i class="fas fa-exclamation-triangle"></i> Extreme Risk Districts</h3>
+                    <div class="stat-grid">
+                        <div class="stat-item danger">
+                            <div class="stat-label">Kodagu District</div>
+                            <div class="stat-value">EXTREME</div>
+                        </div>
+                        <div class="stat-item danger">
+                            <div class="stat-label">Chikkamagaluru</div>
+                            <div class="stat-value">CRITICAL</div>
+                        </div>
+                        <div class="stat-item warning">
+                            <div class="stat-label">Uttara Kannada</div>
+                            <div class="stat-value">HIGH</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3 class="card-title"><i class="fas fa-temperature-high"></i> Temperature Anomalies</h3>
+                    <div class="stat-grid">
+                        <div class="stat-item danger">
+                            <div class="stat-value">+2.8°C</div>
+                            <div class="stat-label">Kodagu District</div>
+                        </div>
+                        <div class="stat-item warning">
+                            <div class="stat-value">+2.2°C</div>
+                            <div class="stat-label">Chikkamagaluru</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">+1.9°C</div>
+                            <div class="stat-label">Western Ghats Avg</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3 class="card-title"><i class="fas fa-users"></i> Population at Risk</h3>
+                    <div class="stat-grid">
+                        <div class="stat-item danger">
+                            <div class="stat-value">1.8 Million</div>
+                            <div class="stat-label">Directly Affected</div>
+                        </div>
+                        <div class="stat-item warning">
+                            <div class="stat-value">12 Million</div>
+                            <div class="stat-label">Water Supply Impact</div>
+                        </div>
+                        <div class="stat-item danger">
+                            <div class="stat-value">₹4,200 Cr</div>
+                            <div class="stat-label">Annual Economic Loss</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="scenario-section">
+                <h2 class="card-title" style="color:var(--accent-teal); margin-bottom:1.5rem;"><i class="fas fa-exclamation-circle"></i> District Crisis Analysis</h2>
+                <div class="data-grid">
+                    <div class="card">
+                        <h3 class="card-title" style="color:var(--danger-red);"><i class="fas fa-skull-crossbones"></i> Kodagu District</h3>
+                        <div class="text-content">
+                            <p><strong>Cauvery River Source:</strong> 40% flow reduction predicted</p>
+                            <p><strong>Coffee Production:</strong> 35% decline since 2000</p>
+                            <p><strong>Landslides:</strong> 120% increase in frequency</p>
+                        </div>
+                        <div class="stat-value" style="color:var(--danger-red); font-size:1.5rem; margin-top:1rem;">CRITICAL ZONE</div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3 class="card-title" style="color:var(--warning-orange);"><i class="fas fa-mountain"></i> Chikkamagaluru</h3>
+                        <div class="text-content">
+                            <p><strong>Bhadra River:</strong> Flow reduced by 28%</p>
+                            <p><strong>Tourism Impact:</strong> 25% decline in peak season</p>
+                            <p><strong>Agriculture:</strong> 40% crop yield reduction</p>
+                        </div>
+                        <div class="stat-value" style="color:var(--warning-orange); font-size:1.5rem; margin-top:1rem;">HIGH RISK</div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3 class="card-title"><i class="fas fa-water"></i> Uttara Kannada</h3>
+                        <div class="text-content">
+                            <p><strong>Kali River:</strong> Hydropower generation down 30%</p>
+                            <p><strong>Coastal Erosion:</strong> 15 meters retreat since 1990</p>
+                            <p><strong>Fisheries:</strong> 25% decline in catch</p>
+                        </div>
+                        <div class="stat-value" style="font-size:1.5rem; margin-top:1rem;">MODERATE RISK</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="charts-container">
+                <div class="card chart-card">
+                    <h3 class="card-title"><i class="fas fa-temperature-high"></i> District Warming Trends</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="districtTempChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="card chart-card">
+                    <h3 class="card-title"><i class="fas fa-chart-pie"></i> Impact Distribution</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="impactDistributionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Scenario Simulator Page -->
+        <div id="simulator" class="page">
+            <div class="dashboard-header">
+                <h1><i class="fas fa-sliders-h"></i> Karnataka Climate Simulator</h1>
+                <p class="tagline">Interactive simulation of climate change impacts on Karnataka's cryosphere. Adjust parameters to see future scenarios.</p>
+                <div class="data-source">
+                    <i class="fas fa-brain"></i>
+                    IPCC AR6 Models • Karnataka Climate Action Plan • IISc Projections
+                </div>
+            </div>
+            
+            <div class="scenario-section">
+                <h2 class="card-title" style="color:var(--accent-teal); margin-bottom:1.5rem;"><i class="fas fa-cogs"></i> Configure Climate Scenario</h2>
+                
+                <div class="scenario-buttons">
+                    <button class="scenario-btn active" data-scenario="optimistic" onclick="setScenario('optimistic')">
+                        <i class="fas fa-leaf"></i> Optimistic<br><span style="color:var(--success-green); font-size:0.9rem;">+1.5°C Target</span>
+                    </button>
+                    <button class="scenario-btn" data-scenario="moderate" onclick="setScenario('moderate')">
+                        <i class="fas fa-road"></i> Moderate<br><span style="color:var(--warning-orange); font-size:0.9rem;">+2.0°C Pathway</span>
+                    </button>
+                    <button class="scenario-btn" data-scenario="pessimistic" onclick="setScenario('pessimistic')">
+                        <i class="fas fa-fire"></i> Pessimistic<br><span style="color:var(--danger-red); font-size:0.9rem;">+3.0°C Reality</span>
+                    </button>
+                </div>
+                
+                <div class="scenario-controls">
+                    <div>
+                        <div class="slider-label">
+                            <span><i class="fas fa-thermometer-full"></i> Temperature Rise</span>
+                            <span class="slider-value" id="tempValue">+1.5°C</span>
+                        </div>
+                        <input type="range" min="10" max="40" value="15" class="slider" id="tempSlider" oninput="updateTemp(this.value)">
+                        <div class="slider-labels">
+                            <span>+1.0°C</span>
+                            <span>+2.0°C</span>
+                            <span>+3.0°C</span>
+                            <span>+4.0°C</span>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="slider-label">
+                            <span><i class="fas fa-calendar-alt"></i> Projection Year</span>
+                            <span class="slider-value" id="yearValue">2050</span>
+                        </div>
+                        <input type="range" min="2030" max="2100" value="2050" class="slider" id="yearSlider" oninput="updateYear(this.value)">
+                        <div class="slider-labels">
+                            <span>2030</span>
+                            <span>2050</span>
+                            <span>2075</span>
+                            <span>2100</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="data-grid" style="margin-top: 2.5rem;">
+                    <div class="card">
+                        <h3 class="card-title"><i class="fas fa-chart-pie"></i> Scenario Impact Summary</h3>
+                        <div id="scenarioSummary" class="text-content">
+                            <p><i class="fas fa-check-circle" style="color:var(--success-green);"></i> <strong>Scenario:</strong> <span class="highlight">Optimistic Pathway</span></p>
+                            <p><i class="fas fa-thermometer-half" style="color:var(--warning-orange);"></i> <strong>Temperature:</strong> <span class="highlight">+1.5°C by 2050</span></p>
+                            <p><i class="fas fa-snowflake" style="color:var(--accent-blue);"></i> <strong>Glacier Loss:</strong> <span class="highlight">55% remaining</span></p>
+                            <p><i class="fas fa-water" style="color:var(--accent-teal);"></i> <strong>River Flow:</strong> <span class="highlight">-25% reduction</span></p>
+                            <p><i class="fas fa-exclamation-triangle" style="color:var(--warning-orange);"></i> <strong>Risk Level:</strong> <span class="highlight">MODERATE</span></p>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3 class="card-title"><i class="fas fa-balance-scale"></i> Impact Comparison</h3>
+                        <div id="scenarioComparison" class="text-content">
+                            <p><i class="fas fa-snowflake"></i> <strong>Current Glacier:</strong> 58% of 1970</p>
+                            <p><i class="fas fa-chart-line" style="color:var(--warning-orange);"></i> <strong>Projected Glacier:</strong> <span class="highlight">55% remaining</span></p>
+                            <p><i class="fas fa-industry"></i> <strong>Current River Flow:</strong> -18% reduction</p>
+                            <p><i class="fas fa-industry" style="color:var(--warning-orange);"></i> <strong>Projected Flow:</strong> <span class="highlight">-25% reduction</span></p>
+                            <p><i class="fas fa-users" style="color:var(--warning-orange);"></i> <strong>Affected Population:</strong> <span class="highlight">+8 Million</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="charts-container">
+                <div class="card chart-card">
+                    <h3 class="card-title"><i class="fas fa-chart-line-down"></i> Glacier Loss Projections</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="scenarioLossChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="card chart-card">
+                    <h3 class="card-title"><i class="fas fa-chart-area"></i> Hydrological Impact Projections</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="hydrologicalChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Climate Impacts Page -->
+        <div id="impacts" class="page">
+            <div class="dashboard-header">
+                <h1><i class="fas fa-exclamation-triangle"></i> Karnataka Climate Impact Analysis</h1>
+                <p class="tagline">Comprehensive assessment of cryosphere degradation impacts on Karnataka's economy, society, and environment.</p>
+            </div>
+            
+            <div class="dashboard-grid">
+                <div class="card">
+                    <h3 class="card-title"><i class="fas fa-tint"></i> Hydrological Impacts</h3>
+                    <ul class="content-list">
+                        <li><strong>Cauvery River:</strong> 40% flow reduction projected</li>
+                        <li><strong>Groundwater:</strong> 35% depletion in Western Ghats</li>
+                        <li><strong>Monsoon Patterns:</strong> 15% decrease in rainfall</li>
+                        <li><strong>Drought Frequency:</strong> 200% increase since 1950</li>
+                    </ul>
+                </div>
+                
+                <div class="card">
+                    <h3 class="card-title"><i class="fas fa-leaf"></i> Agricultural Impacts</h3>
+                    <ul class="content-list">
+                        <li><strong>Coffee Production:</strong> 35% decline in Kodagu</li>
+                        <li><strong>Rice Cultivation:</strong> 25% yield reduction</li>
+                        <li><strong>Cardamom:</strong> 40% crop failure risk</li>
+                        <li><strong>Economic Loss:</strong> ₹12,000 Cr annually</li>
+                    </ul>
+                </div>
+                
+                <div class="card">
+                    <h3 class="card-title"><i class="fas fa-city"></i> Socioeconomic Impacts</h3>
+                    <ul class="content-list">
+                        <li><strong>Displacement Risk:</strong> 500,000 people by 2050</li>
+                        <li><strong>Tourism Decline:</strong> 40% in hill stations</li>
+                        <li><strong>Health Impacts:</strong> Water-borne diseases +45%</li>
+                        <li><strong>Infrastructure:</strong> ₹8,500 Cr at risk</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="scenario-section">
+                <h2 class="card-title" style="color:var(--accent-teal); margin-bottom:1.5rem;"><i class="fas fa-lightbulb"></i> Mitigation & Adaptation Strategies</h2>
+                <div class="data-grid">
+                    <div class="card">
+                        <h3 class="card-title" style="color:var(--success-green);"><i class="fas fa-solar-panel"></i> Immediate Actions</h3>
+                        <div class="text-content">
+                            <div class="impact-item">
+                                <h4>Afforestation Program</h4>
+                                <p>1 Million trees in Western Ghats watershed areas</p>
+                            </div>
+                            <div class="impact-item">
+                                <h4>Sustainable Agriculture</h4>
+                                <p>Drip irrigation adoption & organic farming promotion</p>
+                            </div>
+                            <div class="impact-item">
+                                <h4>Water Management</h4>
+                                <p>Rainwater harvesting mandate in urban areas</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3 class="card-title"><i class="fas fa-microchip"></i> Technological Solutions</h3>
+                        <div class="text-content">
+                            <div class="impact-item">
+                                <h4>AI Monitoring System</h4>
+                                <p>Real-time glacier tracking using satellite data</p>
+                            </div>
+                            <div class="impact-item">
+                                <h4>Cloud Seeding Technology</h4>
+                                <p>Enhanced rainfall technology for drought-prone areas</p>
+                            </div>
+                            <div class="impact-item">
+                                <h4>Smart Water Grids</h4>
+                                <p>Efficient water distribution and leak detection</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3 class="card-title" style="color:var(--accent-teal);"><i class="fas fa-handshake"></i> Policy Interventions</h3>
+                        <div class="text-content">
+                            <div class="impact-item">
+                                <h4>Climate Change Bill</h4>
+                                <p>Karnataka Climate Change Legislation 2024</p>
+                            </div>
+                            <div class="impact-item">
+                                <h4>Carbon Trading System</h4>
+                                <p>Industry emissions regulation and trading platform</p>
+                            </div>
+                            <div class="impact-item">
+                                <h4>International Cooperation</h4>
+                                <p>World Bank climate funding and technology transfer</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Research Data Page -->
+        <div id="research" class="page">
+            <div class="dashboard-header">
+                <h1><i class="fas fa-microscope"></i> Karnataka Cryosphere Research Portal</h1>
+                <p class="tagline">Access scientific data, research papers, and monitoring resources from leading institutions.</p>
+            </div>
+            
+            <div class="scenario-section">
+                <h2 class="card-title" style="color:var(--accent-teal); margin-bottom:1.5rem;"><i class="fas fa-database"></i> Research Data Sources</h2>
+                
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <h3 class="card-title"><i class="fas fa-satellite"></i> Satellite Data</h3>
+                        <ul class="content-list">
+                            <li><strong>ISRO:</strong> RESOURCESAT, CARTOSAT imagery</li>
+                            <li><strong>NASA:</strong> Landsat, MODIS glacier data</li>
+                            <li><strong>ESA:</strong> Sentinel-1, Sentinel-2 monitoring</li>
+                            <li><strong>Update Frequency:</strong> Daily</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="card">
+                        <h3 class="card-title"><i class="fas fa-temperature-low"></i> Ground Monitoring</h3>
+                        <ul class="content-list">
+                            <li><strong>IMD Stations:</strong> 45 stations in Western Ghats</li>
+                            <li><strong>Automatic Weather:</strong> 12 high-altitude stations</li>
+                            <li><strong>Glacier Cameras:</strong> 8 time-lapse stations</li>
+                            <li><strong>Data Frequency:</strong> Hourly</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="card">
+                        <h3 class="card-title"><i class="fas fa-university"></i> Research Institutions</h3>
+                        <ul class="content-list">
+                            <li><strong>IISc Bangalore:</strong> Climate modeling center</li>
+                            <li><strong>IIT Mumbai:</strong> Hydrological studies</li>
+                            <li><strong>NIAS:</strong> Policy research</li>
+                            <li><strong>KFD:</strong> Field monitoring network</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="card" style="margin-top: 2rem;">
+                    <h3 class="card-title"><i class="fas fa-file-alt"></i> Key Research Papers</h3>
+                    <ul class="content-list">
+                        <li>"Western Ghats Glacier Retreat 1970-2023" - IISc (2023)</li>
+                        <li>"Cauvery River Flow Projections" - IIT Mumbai (2022)</li>
+                        <li>"Karnataka Climate Vulnerability Index" - NIAS (2023)</li>
+                        <li>"Coffee Production Climate Impact" - University of Agricultural Sciences (2022)</li>
+                        <li>"Hydropower Generation Decline" - Karnataka Power Corporation (2023)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>❄️ <span style="color:var(--accent-teal); font-weight:bold;">Karnataka Glacier Watch</span> | Advanced Climate Intelligence Platform</p>
+            <p>© 2023 Karnataka Climate Initiative | <span style="color:var(--warning-orange);">⚠️ Real-time data monitoring active</span> | For scientific and policy use</p>
+            <p style="margin-top:1rem; font-size:0.9rem; opacity:0.8;">
+                <i class="fas fa-exclamation-circle"></i> Data visualized represents scientific projections. 
+                <span style="color:var(--success-green);">Immediate climate action can change these trajectories.</span>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Create advanced background animations
+            createBackgroundAnimations();
+            
+            // Initialize Karnataka map
+            initKarnatakaMap();
+            
+            // Initialize all charts
+            initCharts();
+            
+            // Setup navigation
+            setupNavigation();
+            
+            // Setup scenario simulator
+            setupScenarioSimulator();
+            
+            // Show initial page
+            showPage('overview');
+            
+            // Start live updates
+            startLiveUpdates();
+        });
+        
+        function createBackgroundAnimations() {
+            const container = document.getElementById('bgContainer');
+            
+            // Create aurora borealis
+            const aurora = document.createElement('div');
+            aurora.className = 'aurora-borealis';
+            container.appendChild(aurora);
+            
+            // Create floating glaciers
+            for (let i = 0; i < 5; i++) {
+                const glacier = document.createElement('div');
+                glacier.className = 'floating-glaciers';
+                glacier.style.width = Math.random() * 300 + 150 + 'px';
+                glacier.style.height = glacier.style.width;
+                glacier.style.left = Math.random() * 100 + '%';
+                glacier.style.top = Math.random() * 100 + '%';
+                glacier.style.animationDuration = Math.random() * 30 + 20 + 's';
+                glacier.style.animationDelay = Math.random() * 10 + 's';
+                container.appendChild(glacier);
+            }
+            
+            // Create snow particles
+            for (let i = 0; i < 80; i++) {
+                const snow = document.createElement('div');
+                snow.className = 'snow-particle';
+                const size = Math.random() * 3 + 1;
+                snow.style.width = size + 'px';
+                snow.style.height = size + 'px';
+                snow.style.left = Math.random() * 100 + '%';
+                snow.style.opacity = Math.random() * 0.7 + 0.3;
+                snow.style.animationDuration = Math.random() * 10 + 5 + 's';
+                snow.style.animationDelay = Math.random() * 10 + 's';
+                container.appendChild(snow);
+            }
+            
+            // Create crystal shards
+            for (let i = 0; i < 12; i++) {
+                const crystal = document.createElement('div');
+                crystal.className = 'crystal-shard';
+                crystal.style.left = Math.random() * 100 + '%';
+                crystal.style.top = Math.random() * 100 + '%';
+                crystal.style.transform = `rotate(${Math.random() * 360}deg)`;
+                crystal.style.animationDelay = Math.random() * 4 + 's';
+                crystal.style.opacity = Math.random() * 0.5 + 0.3;
+                container.appendChild(crystal);
+            }
+        }
+        
+        function initKarnatakaMap() {
+            if (document.getElementById('karnatakaMap')) {
+                // Karnataka coordinates
+                const karnatakaMap = L.map('karnatakaMap').setView([14.5204, 75.7224], 7);
+                
+                // Add OpenStreetMap tiles
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors',
+                    maxZoom: 12,
+                    minZoom: 6
+                }).addTo(karnatakaMap);
+                
+                // Karnataka boundary coordinates (simplified)
+                const karnatakaBoundary = [
+                    [18.5, 74], [18.5, 74.5], [18, 74.5], [18, 75], [17.5, 75],
+                    [17.5, 76], [17, 76], [17, 76.5], [16.5, 76.5], [16.5, 77],
+                    [16, 77], [16, 77.5], [15.5, 77.5], [15.5, 78], [15, 78],
+                    [15, 78.5], [14.5, 78.5], [14.5, 79], [14, 79], [14, 79.5],
+                    [13.5, 79.5], [13.5, 80], [13, 80], [13, 74.5], [13.5, 74.5],
+                    [13.5, 74], [14, 74], [14, 74.5], [14.5, 74.5], [14.5, 74],
+                    [15, 74], [15, 74.5], [15.5, 74.5], [15.5, 74], [16, 74],
+                    [16, 74.5], [16.5, 74.5], [16.5, 74], [17, 74], [17, 74.5],
+                    [17.5, 74.5], [17.5, 74], [18, 74], [18, 74.5], [18.5, 74.5]
+                ];
+                
+                // Add Karnataka boundary
+                L.polygon(karnatakaBoundary, {
+                    color: 'rgba(0, 224, 255, 0.3)',
+                    fillColor: 'rgba(0, 224, 255, 0.1)',
+                    fillOpacity: 0.2,
+                    weight: 2
+                }).addTo(karnatakaMap);
+                
+                // Add district markers with risk levels
+                const districts = [
+                    {name: "Kodagu", coords: [12.3375, 75.8069], risk: "extreme", impact: "Cauvery River source, 40% flow reduction"},
+                    {name: "Chikkamagaluru", coords: [13.3161, 75.7720], risk: "high", impact: "Bhadra River, coffee production decline"},
+                    {name: "Uttara Kannada", coords: [14.6900, 74.6800], risk: "moderate", impact: "Kali River, hydropower affected"},
+                    {name: "Shivamogga", coords: [13.9299, 75.5681], risk: "moderate", impact: "Sharavathi River, tourism impact"},
+                    {name: "Hassan", coords: [13.0033, 76.1004], risk: "moderate", impact: "Hemavathi River, agriculture affected"},
+                    {name: "Dakshina Kannada", coords: [12.8438, 74.8288], risk: "low", impact: "Coastal erosion, fisheries decline"}
+                ];
+                
+                districts.forEach(district => {
+                    const color = district.risk === "extreme" ? "#FF375F" : 
+                                 district.risk === "high" ? "#FF8C42" : 
+                                 district.risk === "moderate" ? "#0066FF" : "#00FF9D";
+                    
+                    const marker = L.circleMarker(district.coords, {
+                        radius: district.risk === "extreme" ? 12 : district.risk === "high" ? 10 : 7,
+                        fillColor: color,
+                        color: '#fff',
+                        weight: 2,
+                        fillOpacity: 0.7
+                    }).addTo(karnatakaMap);
+                    
+                    // Add pulsing animation for high risk districts
+                    if (district.risk === "extreme" || district.risk === "high") {
+                        let pulse = true;
+                        setInterval(() => {
+                            marker.setStyle({
+                                fillOpacity: pulse ? 0.9 : 0.5
+                            });
+                            pulse = !pulse;
+                        }, 1000);
+                    }
+                    
+                    marker.bindPopup(`
+                        <div style="color: #0A1128; padding: 10px; min-width: 220px;">
+                            <h3 style="color: ${color}; margin-bottom: 8px; font-size: 1.1rem;">${district.name}</h3>
+                            <p><strong>Risk Level:</strong> <span style="color: ${color}; font-weight: bold;">${district.risk.toUpperCase()}</span></p>
+                            <p><strong>Impact:</strong> ${district.impact}</p>
+                            <p><strong>Temperature Rise:</strong> ${district.risk === "extreme" ? "+2.8°C" : district.risk === "high" ? "+2.2°C" : "+1.8°C"}</p>
+                            <p><strong>Action Required:</strong> ${district.risk === "extreme" ? "IMMEDIATE" : "MITIGATION NEEDED"}</p>
+                        </div>
+                    `);
+                });
+                
+                // Add river lines
+                const rivers = [
+                    {name: "Cauvery River", coords: [[12.4, 75.8], [12.2, 76.0], [12.0, 76.5], [11.8, 77.0], [11.6, 77.5]]},
+                    {name: "Kali River", coords: [[15.0, 74.5], [14.8, 74.6], [14.6, 74.7], [14.4, 74.8]]},
+                    {name: "Bhadra River", coords: [[13.5, 75.5], [13.7, 75.6], [13.9, 75.7], [14.1, 75.8]]}
+                ];
+                
+                rivers.forEach(river => {
+                    L.polyline(river.coords, {
+                        color: '#00E0FF',
+                        weight: 2,
+                        opacity: 0.6,
+                        dashArray: '10, 10'
+                    }).addTo(karnatakaMap).bindPopup(`<strong>${river.name}</strong><br>Affected by glacial retreat`);
+                });
+            }
+        }
+        
+        function initCharts() {
+            // Glacier Loss Chart
+            if (document.getElementById('glacierLossChart')) {
+                const ctx = document.getElementById('glacierLossChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['1970', '1980', '1990', '2000', '2010', '2020', '2023'],
+                        datasets: [{
+                            label: 'Western Ghats Glacier Extent (% of 1970)',
+                            data: [100, 92, 85, 75, 65, 58, 55],
+                            borderColor: '#00E0FF',
+                            backgroundColor: 'rgba(0, 224, 255, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#0066FF',
+                            pointRadius: 5,
+                            pointHoverRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: { color: '#E3F2FF', font: { size: 11 } }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                min: 40,
+                                max: 100,
+                                title: {
+                                    display: true,
+                                    text: '% of 1970 Glacier Extent',
+                                    color: '#94A3B8'
+                                },
+                                grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                                ticks: { color: '#94A3B8' }
+                            },
+                            x: {
+                                grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                                ticks: { color: '#94A3B8' }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // District Impact Chart
+            if (document.getElementById('districtImpactChart')) {
+                const ctx = document.getElementById('districtImpactChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Kodagu', 'Chikkamagaluru', 'Uttara Kannada', 'Shivamogga', 'Hassan', 'Dakshina Kannada'],
+                        datasets: [{
+                            label: 'Temperature Rise (°C)',
+                            data: [2.8, 2.2, 1.9, 1.8, 1.7, 1.5],
+                            backgroundColor: ['#FF375F', '#FF8C42', '#0066FF', '#00E0FF', '#8AE2FF', '#00FF9D'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: { color: '#E3F2FF' }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 3,
+                                title: {
+                                    display: true,
+                                    text: 'Temperature Rise (°C)',
+                                    color: '#94A3B8'
+                                },
+                                grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                                ticks: { color: '#94A3B8' }
+                            },
+                            x: {
+                                grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                                ticks: { color: '#94A3B8' }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Scenario Loss Chart
+            if (document.getElementById('scenarioLossChart')) {
+                const ctx = document.getElementById('scenarioLossChart').getContext('2d');
+                window.scenarioChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['2023', '2030', '2040', '2050', '2060', '2070', '2080', '2090', '2100'],
+                        datasets: [
+                            {
+                                label: 'Optimistic (+1.5°C)',
+                                data: [55, 52, 48, 45, 42, 40, 38, 37, 36],
+                                borderColor: '#00FF9D',
+                                backgroundColor: 'rgba(0, 255, 157, 0.1)',
+                                borderWidth: 2,
+                                tension: 0.4,
+                                fill: true
+                            },
+                            {
+                                label: 'Moderate (+2.0°C)',
+                                data: [55, 50, 43, 38, 34, 31, 29, 27, 25],
+                                borderColor: '#FF8C42',
+                                backgroundColor: 'rgba(255, 140, 66, 0.1)',
+                                borderWidth: 2,
+                                tension: 0.4,
+                                fill: true
+                            },
+                            {
+                                label: 'Pessimistic (+3.0°C)',
+                                data: [55, 48, 38, 30, 24, 20, 17, 15, 12],
+                                borderColor: '#FF375F',
+                                backgroundColor: 'rgba(255, 55, 95, 0.1)',
+                                borderWidth: 2,
+                                tension: 0.4,
+                                fill: true
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: { color: '#E3F2FF' }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                min: 0,
+                                max: 60,
+                                title: {
+                                    display: true,
+                                    text: '% Glacier Remaining',
+                                    color: '#94A3B8'
+                                },
+                                grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                                ticks: { color: '#94A3B8' }
+                            },
+                            x: {
+                                grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                                ticks: { color: '#94A3B8' }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Initialize other charts
+            initDistrictTempChart();
+            initImpactDistributionChart();
+            initHydrologicalChart();
+        }
+        
+        function initDistrictTempChart() {
+            if (document.getElementById('districtTempChart')) {
+                const ctx = document.getElementById('districtTempChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['1990', '1995', '2000', '2005', '2010', '2015', '2020', '2023'],
+                        datasets: [
+                            {
+                                label: 'Kodagu',
+                                data: [0, 0.3, 0.7, 1.2, 1.6, 2.0, 2.4, 2.8],
+                                borderColor: '#FF375F',
+                                borderWidth: 2,
+                                tension: 0.4
+                            },
+                            {
+                                label: 'Chikkamagaluru',
+                                data: [0, 0.2, 0.5, 0.9, 1.3, 1.7, 2.0, 2.2],
+                                borderColor: '#FF8C42',
+                                borderWidth: 2,
+                                tension: 0.4
+                            },
+                            {
+                                label: 'Western Ghats Avg',
+                                data: [0, 0.1, 0.4, 0.7, 1.1, 1.5, 1.8, 2.0],
+                                borderColor: '#00E0FF',
+                                borderWidth: 2,
+                                tension: 0.4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: { color: '#E3F2FF' }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Temperature Rise (°C)',
+                                    color: '#94A3B8'
+                                },
+                                grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                                ticks: { color: '#94A3B8' }
+                            },
+                            x: {
+                                grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                                ticks: { color: '#94A3B8' }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        
+        function initImpactDistributionChart() {
+            if (document.getElementById('impactDistributionChart')) {
+                const ctx = document.getElementById('impactDistributionChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Agriculture', 'Water Supply', 'Tourism', 'Hydropower', 'Infrastructure'],
+                        datasets: [{
+                            data: [35, 30, 15, 12, 8],
+                            backgroundColor: ['#FF375F', '#FF8C42', '#0066FF', '#00E0FF', '#00FF9D'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: { color: '#E3F2FF' }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        
+        function initHydrologicalChart() {
+            if (document.getElementById('hydrologicalChart')) {
+                const ctx = document.getElementById('hydrologicalChart').getContext('2d');
+                window.hydrologicalChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Cauvery', 'Kali', 'Bhadra', 'Sharavathi', 'Hemavathi'],
+                        datasets: [
+                            {
+                                label: 'Current Flow Reduction (%)',
+                                data: [18, 15, 12, 10, 8],
+                                backgroundColor: '#00E0FF'
+                            },
+                            {
+                                label: 'Projected 2050 (%)',
+                                data: [40, 35, 30, 28, 25],
+                                backgroundColor: '#FF8C42'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: { color: '#E3F2FF' }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 50,
+                                title: {
+                                    display: true,
+                                    text: 'River Flow Reduction (%)',
+                                    color: '#94A3B8'
+                                },
+                                grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                                ticks: { color: '#94A3B8' }
+                            },
+                            x: {
+                                grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                                ticks: { color: '#94A3B8' }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        
+        function setupNavigation() {
+            const navLinks = document.querySelectorAll('.nav-link');
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const pageId = this.dataset.page;
+                    
+                    navLinks.forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    showPage(pageId);
+                });
+            });
+        }
+        
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            document.getElementById(pageId).classList.add('active');
+            
+            // Show notification for page change
+            showNotification('Navigated to ' + pageId.charAt(0).toUpperCase() + pageId.slice(1));
+        }
+        
+        function setupScenarioSimulator() {
+            // Set initial values
+            updateTemp(15); // +1.5°C
+            updateYear(2050);
+        }
+        
+        function setScenario(scenario) {
+            // Remove active class from all buttons
+            document.querySelectorAll('.scenario-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Add active class to clicked button
+            event.target.classList.add('active');
+            
+            // Update sliders based on scenario
+            let tempValue, yearValue;
+            
+            switch(scenario) {
+                case 'optimistic':
+                    tempValue = 15; // +1.5°C
+                    yearValue = 2050;
+                    break;
+                case 'moderate':
+                    tempValue = 20; // +2.0°C
+                    yearValue = 2060;
+                    break;
+                case 'pessimistic':
+                    tempValue = 30; // +3.0°C
+                    yearValue = 2070;
+                    break;
+            }
+            
+            // Update sliders
+            document.getElementById('tempSlider').value = tempValue;
+            document.getElementById('yearSlider').value = yearValue;
+            
+            // Update displays
+            updateTemp(tempValue);
+            updateYear(yearValue);
+            
+            // Show notification
+            showNotification('Scenario updated to ' + scenario.charAt(0).toUpperCase() + scenario.slice(1));
+        }
+        
+        function updateTemp(value) {
+            const temp = value / 10;
+            const tempElement = document.getElementById('tempValue');
+            tempElement.textContent = '+' + temp.toFixed(1) + '°C';
+            
+            // Update color based on temperature
+            if (temp >= 3.0) {
+                tempElement.style.color = 'var(--danger-red)';
+            } else if (temp >= 2.0) {
+                tempElement.style.color = 'var(--warning-orange)';
+            } else {
+                tempElement.style.color = 'var(--success-green)';
+            }
+            
+            updateScenarioData();
+        }
+        
+        function updateYear(value) {
+            document.getElementById('yearValue').textContent = value;
+            updateScenarioData();
+        }
+        
+        function updateScenarioData() {
+            const temp = document.getElementById('tempSlider').value / 10;
+            const year = parseInt(document.getElementById('yearSlider').value);
+            
+            // Calculate impacts based on temperature and year
+            const baseGlacier = 55; // Current glacier %
+            const yearsFromNow = year - 2023;
+            
+            let glacierRemaining, riverReduction, riskLevel;
+            
+            if (temp <= 1.5) {
+                // Optimistic scenario
+                glacierRemaining = Math.max(baseGlacier - (yearsFromNow * 0.3), 35);
+                riverReduction = 25 + (temp - 1.5) * 10;
+                riskLevel = "MODERATE";
+            } else if (temp <= 2.0) {
+                // Moderate scenario
+                glacierRemaining = Math.max(baseGlacier - (yearsFromNow * 0.5), 20);
+                riverReduction = 30 + (temp - 2.0) * 15;
+                riskLevel = "HIGH";
+            } else {
+                // Pessimistic scenario
+                glacierRemaining = Math.max(baseGlacier - (yearsFromNow * 0.8), 10);
+                riverReduction = 40 + (temp - 3.0) * 20;
+                riskLevel = "CRITICAL";
+            }
+            
+            // Update scenario summary
+            const scenarioText = temp <= 1.5 ? "Optimistic Pathway" : temp <= 2.0 ? "Moderate Pathway" : "Pessimistic Pathway";
+            const scenarioColor = temp <= 1.5 ? "var(--success-green)" : temp <= 2.0 ? "var(--warning-orange)" : "var(--danger-red)";
+            
+            document.getElementById('scenarioSummary').innerHTML = `
+                <p><i class="fas fa-check-circle" style="color:${scenarioColor};"></i> <strong>Scenario:</strong> <span style="color:${scenarioColor};">${scenarioText}</span></p>
+                <p><i class="fas fa-thermometer-half" style="color:${temp >= 3.0 ? 'var(--danger-red)' : temp >= 2.0 ? 'var(--warning-orange)' : 'var(--success-green)'}"></i> <strong>Temperature:</strong> <span style="color:${temp >= 3.0 ? 'var(--danger-red)' : temp >= 2.0 ? 'var(--warning-orange)' : 'var(--success-green)'}">+${temp.toFixed(1)}°C by ${year}</span></p>
+                <p><i class="fas fa-snowflake" style="color:var(--accent-blue);"></i> <strong>Glacier Remaining:</strong> <span style="color:var(--accent-blue);">${glacierRemaining.toFixed(0)}%</span></p>
+                <p><i class="fas fa-water" style="color:var(--accent-teal);"></i> <strong>River Flow Reduction:</strong> <span style="color:var(--accent-teal);">-${riverReduction.toFixed(0)}%</span></p>
+                <p><i class="fas fa-exclamation-triangle" style="color:${temp >= 3.0 ? 'var(--danger-red)' : temp >= 2.0 ? 'var(--warning-orange)' : 'var(--success-green)'}"></i> <strong>Risk Level:</strong> <span style="color:${temp >= 3.0 ? 'var(--danger-red)' : temp >= 2.0 ? 'var(--warning-orange)' : 'var(--success-green)'}">${riskLevel}</span></p>
+            `;
+            
+            // Update comparison
+            document.getElementById('scenarioComparison').innerHTML = `
+                <p><i class="fas fa-snowflake"></i> <strong>Current Glacier:</strong> 55% remaining</p>
+                <p><i class="fas fa-chart-line" style="color:${temp >= 2.0 ? 'var(--warning-orange)' : 'var(--success-green)'}"></i> <strong>Projected Glacier:</strong> <span style="color:${temp >= 2.0 ? 'var(--warning-orange)' : 'var(--success-green)'}">${glacierRemaining.toFixed(0)}% remaining</span></p>
+                <p><i class="fas fa-industry"></i> <strong>Current River Flow:</strong> -18% reduction</p>
+                <p><i class="fas fa-industry" style="color:${temp >= 2.0 ? 'var(--warning-orange)' : 'var(--success-green)'}"></i> <strong>Projected Flow:</strong> <span style="color:${temp >= 2.0 ? 'var(--warning-orange)' : 'var(--success-green)'}">-${riverReduction.toFixed(0)}% reduction</span></p>
+                <p><i class="fas fa-users" style="color:${temp >= 2.0 ? 'var(--warning-orange)' : 'var(--success-green)'}"></i> <strong>Affected Population:</strong> <span style="color:${temp >= 2.0 ? 'var(--warning-orange)' : 'var(--success-green)'}">+${Math.round(riverReduction * 100000)} people</span></p>
+            `;
+            
+            // Update charts
+            updateScenarioCharts(temp, year);
+        }
+        
+        function updateScenarioCharts(temp, year) {
+            // Update glacier loss chart
+            if (window.scenarioChart) {
+                const datasets = window.scenarioChart.data.datasets;
+                
+                // Update based on temperature
+                if (temp <= 1.5) {
+                    datasets[0].data = [55, 52, 48, 45, 42, 40, 38, 37, 36];
+                } else if (temp <= 2.0) {
+                    datasets[0].data = [55, 50, 43, 38, 34, 31, 29, 27, 25];
+                } else {
+                    datasets[0].data = [55, 48, 38, 30, 24, 20, 17, 15, 12];
+                }
+                
+                window.scenarioChart.update();
+            }
+            
+            // Update hydrological chart
+            if (window.hydrologicalChart) {
+                const baseFlow = [18, 15, 12, 10, 8];
+                const projectedFlow = baseFlow.map(value => {
+                    const multiplier = temp <= 1.5 ? 2.0 : temp <= 2.0 ? 2.5 : 3.0;
+                    return Math.min(value * multiplier, 50);
+                });
+                
+                window.hydrologicalChart.data.datasets[1].data = projectedFlow;
+                window.hydrologicalChart.update();
+            }
+        }
+        
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.querySelector('.notification-content').innerHTML = 
+                `<i class="fas fa-sync-alt" style="color:var(--accent-teal); margin-right:12px; font-size:1.1rem;"></i>
+                <strong>${message}</strong>`;
+            notification.style.display = 'block';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+        
+        function startLiveUpdates() {
+            // Simulate live data updates
+            setInterval(() => {
+                // Randomly update some statistics
+                const statItems = document.querySelectorAll('.stat-item');
+                if (statItems.length > 0) {
+                    const randomIndex = Math.floor(Math.random() * statItems.length);
+                    const item = statItems[randomIndex];
+                    
+                    // Add a subtle animation
+                    item.style.transform = 'scale(1.05)';
+                    setTimeout(() => {
+                        item.style.transform = 'scale(1)';
+                    }, 300);
+                }
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
